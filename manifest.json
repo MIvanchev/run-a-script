@@ -32,7 +32,8 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "run-a-script@ivanchev.net"
+      "id": "run-a-script@ivanchev.net",
+      "strict_min_version": "68.0"
     }
   },
   "permissions": [
