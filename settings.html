@@ -7,7 +7,7 @@
     <div style="margin: 10px">
       <form>
         <div>
-          <textarea cols="95" id="thescript" rows="21"></textarea>
+          <textarea cols="95" id="thescript" rows="21" spellcheck="false"></textarea>
         </div>
         <div style="margin-top: 10px">
           <input id="enabled" name="enabled" type="checkbox"/>
@@ -16,9 +16,11 @@
           </label>
         </div>
         <div style="margin-top: 10px">
-          <button style="padding-top: 5px; padding-bottom: 5px; padding-left: 40px; padding-right: 40px" type="submit">
+          <button disabled="" id="apply" style="padding-top: 5px; padding-bottom: 5px; padding-left: 40px; padding-right: 40px" type="submit">
             Apply
           </button>
+          <span id="status" style="margin-left: 10px">
+          </span>
         </div>
       </form>
       <div style="margin-top: 20px; user-select: text; cursor: auto">
