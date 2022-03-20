@@ -1,0 +1,42 @@
+{
+  "description": "Allows you to define exactly one JS script and inject it into every web page you visit. It uses Firefox' userScripts feature which allows the sandboxed execution of user-defined scripts. For some convienience, jQuery is usable from your code. The code base is only a couple of lines so you can quickly check for security foul play. A critical tool in the fight against the modern internet.",
+  "manifest_version": 2,
+  "name": "run-a-script",
+  "version": "1.0.0",
+  "homepage_url": "https://github.com/MIvanchev/run-a-script",
+  "icons": {
+    "16": "icons/doge.svg",
+    "32": "icons/doge.svg",
+    "48": "icons/doge.svg",
+    "64": "icons/doge.svg",
+    "96": "icons/doge.svg"
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "user_scripts": {},
+  "options_ui": {
+    "page": "settings.html"
+  },
+  "browser_action": {
+    "browser_style": true,
+    "default_popup": "settings.html",
+    "default_icon": {
+      "32": "icons/doge-32.png",
+      "48": "icons/doge-48.png",
+      "64": "icons/doge.svg",
+      "96": "icons/doge.svg"
+    }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "run-a-script@ivanchev.net"
+    }
+  },
+  "permissions": [
+    "storage",
+    "<all_urls>"
+  ]
+}
