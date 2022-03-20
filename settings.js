@@ -24,8 +24,7 @@ var enabled_cb = document.getElementById("enabled");
 function saveOptions(ev) {
     ev.preventDefault();
 
-    apply_btn.disabled = true
-    status_lbl.textContent = "Persisting values...";
+    status_lbl.textContent = "Applying settings...";
 
     var vals = {
         script: script_ed.value,
@@ -35,12 +34,11 @@ function saveOptions(ev) {
     browser.storage.sync.set(vals)
         .then(() => {
             browser.runtime.sendMessage(vals)
-            status_lbl.textContent = "";
+            status_lbl.textContent = "Successfully applied settings.";
         })
         .catch(reason => {
             console.log(`Error while writing data to storage: ${reason}`)
-            apply_btn.disabled = false;
-            status_lbl.textContent = "Failed to persist values.";
+            status_lbl.textContent = "Failed to apply settings.";
         });
 }
 
@@ -55,15 +53,8 @@ function restoreOptions() {
         })
         .catch(reason => {
             console.log(`Error while retrieving data from storage: ${reason}`)
-            status_lbl.textContent = "Failed to load persisted values.";
+            status_lbl.textContent = "Failed to load persisted settings.";
         });
 }
-
-function onChange() {
-    apply_btn.disabled = false;
-}
-
 document.addEventListener("DOMContentLoaded", restoreOptions);
 document.querySelector("form").addEventListener("submit", saveOptions);
-script_ed.addEventListener("keydown", onChange);
-enabled_cb.addEventListener("change", onChange);
