@@ -23,11 +23,15 @@ async function notify(message) {
     var enabled = message.enabled;
 
     if (reg) {
-        await reg.unregister();
-        reg = null;
+        try {
+            await reg.unregister();
+            reg = null;
+        } catch (err) {
+            console.log(`Error while unregistering script: ${err}`)
+        }
     }
 
-    if (enabled) {
+    if (!reg && enabled) {
         var options = {
             "js": [{
                 "file": "jquery-3.6.0.min.js"
@@ -38,7 +42,11 @@ async function notify(message) {
             "runAt": "document_start"
         };
 
-        reg = await browser.userScripts.register(options);
+        try {
+            reg = await browser.userScripts.register(options);
+        } catch (err) {
+            console.log(`Error while registering script: ${err}`)
+        }
     }
 }
 
