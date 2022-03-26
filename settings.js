@@ -16,45 +16,75 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+var form = document.querySelector("form")
 var apply_btn = document.getElementById("apply");
 var status_lbl = document.getElementById("status");
 var script_ed = document.getElementById("thescript");
 var enabled_cb = document.getElementById("enabled");
 
+function send(id, data) {
+    browser.runtime.sendMessage({
+        "id": id,
+        "data": data
+    });
+}
+
+function notify(message) {
+    var {
+        id,
+        data
+    } = message;
+
+    switch (id) {
+        case "get-ok":
+            script_ed.value = data.script
+            enabled_cb.checked = data.enabled
+            setComponentsStatus(false, "");
+            form.removeEventListener("submit", restoreOptions);
+            form.addEventListener("submit", saveOptions);
+            break;
+        case "get-failed":
+            status_lbl.textContent = data;
+            apply_btn.textContent = "Retry";
+            apply_btn.disabled = false;
+            break;
+        case "set-ok":
+            script_ed.value = data.script;
+            enabled_cb.checked = data.enabled;
+            setComponentsStatus(false, "Settings applied successfully.");
+            break;
+        case "set-failed":
+            setComponentsStatus(false, data);
+            break;
+    }
+}
+
+function setComponentsStatus(disabled, msg) {
+    script_ed.disabled = disabled;
+    enabled_cb.disabled = disabled;
+    apply_btn.disabled = disabled;
+    status_lbl.textContent = msg;
+}
+
 function saveOptions(ev) {
     ev.preventDefault();
 
-    status_lbl.textContent = "Applying settings...";
+    setComponentsStatus(true, "Applying settings...");
 
-    var vals = {
-        script: script_ed.value,
-        enabled: enabled_cb.checked
+    var settings = {
+        "script": script_ed.value,
+        "enabled": enabled_cb.checked
     };
 
-    browser.storage.sync.set(vals)
-        .then(() => {
-            browser.runtime.sendMessage(vals)
-            status_lbl.textContent = "Successfully applied settings.";
-        })
-        .catch(reason => {
-            console.log(`Error while writing data to storage: ${reason}`)
-            status_lbl.textContent = "Failed to apply settings.";
-        });
+
+    send("set", settings);
 }
 
-function restoreOptions() {
-    browser.storage.sync.get({
-            script: "",
-            enabled: false
-        })
-        .then(val => {
-            script_ed.value = val.script
-            enabled_cb.checked = val.enabled
-        })
-        .catch(reason => {
-            console.log(`Error while retrieving data from storage: ${reason}`)
-            status_lbl.textContent = "Failed to load persisted settings.";
-        });
+async function restoreOptions() {
+    status_lbl.textContent = "Loading perstited settings..."
+    send("get", null);
 }
+
+browser.runtime.onMessage.addListener(notify);
 document.addEventListener("DOMContentLoaded", restoreOptions);
-document.querySelector("form").addEventListener("submit", saveOptions);
+form.addEventListener("submit", restoreOptions);
