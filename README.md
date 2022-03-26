@@ -2,7 +2,17 @@
 [![SemVer](https://img.shields.io/badge/version-1.0.0-brightgreen.svg)](http://semver.org)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
 
-A Firefox extension that allows you to define exactly one JS script and inject it into every web page you visit. It uses Firefox' [userScripts](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/userScripts) feature which allows sandboxed execution of JS code. You should be safe from even the most malicious of actors out there. The extension uses synchronized storage so the script will be available in every browser instance you're logged into. For at least some convenience, jQuery is injected as well and usable from your script. The code of the extension is deliberately minimal, you are encouraged to review it for security before running the extension. Please report all problems you find.
+A Firefox extension that allows you to define exactly one JS script and inject it into every web page you visit. It uses Firefox' [userScripts](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/userScripts) feature which allows sandboxed execution of JS code. You should be safe from even the most malicious of actors out there. For at least some convenience, jQuery is injected as well and usable from your script. The code of the extension is deliberately minimal, you are encouraged to review it for security before running the extension. Please report all problems you find and share your snippets in the issues.
+
+run-a-script is meant for people with trust issues. There are plenty of extensions out there that you could easily re-implement with a small JS snippet instead of installing. Also useful with uBlock Origin for defeating aggressive sites.
+
+The plugin supports:
+* sandboxed injection of 1 script + jQuery into all pages, you need to refresh the opened ones
+* enabling / disabling the script
+
+The plugin does NOT support:
+* Android – but working on it
+* Chrome – the whole idea of this extension is to be secure but that's irrelevant if your browser is a blackbox
 
 ## Example
 
