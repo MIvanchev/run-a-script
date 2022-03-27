@@ -54,10 +54,9 @@ function redirectToImgurMedia() {
 function openSongWithInvidious() {
     if (pathname.startsWith("/track/")) {
         $(document).ready(function() {
-            title = $("meta[property=og\\:title]")
-            if (title.length && $("meta[property=og\\:type][content=music\\.song]").length) {
+            if ($("meta[property=og\\:type][content=music\\.song]").length) {
                 console.log("Opening song in Invidious...");
-                title = title.attr("content");
+                title = $("meta[property=og\\:title]").attr("content");
                 artist = $("meta[property=og\\:description]").attr("content").replace(/ ·.*/, "");
                 search_term = `${title} by ${artist}`;
                 search_term = encodeURI(search_term.replaceAll(" ", "+"));
