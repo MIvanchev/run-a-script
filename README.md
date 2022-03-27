@@ -25,14 +25,18 @@ console.log("The execution of the custom code is beginning.");
 var url = document.URL;
 var {
     host,
-    protocol
+    protocol,
+    pathname,
+    search
 } = new URL(url);
 
 var redirects = {
     "www.youtube.com": "yewtu.be",
     "www.reddit.com": "old.reddit.com",
     "imgur.com": redirectToImgurMedia,
-    "twitter.com": "nitter.net"
+    "twitter.com": "nitter.net",
+    "open.spotify.com": openSongWithInvidious,
+    "yewtu.be": handleSpotifyRedirect
 }
 
 function redirectToImgurMedia() {
@@ -45,6 +49,32 @@ function redirectToImgurMedia() {
             console.log("Couldn't find the media link.");
         }
     });
+}
+
+function openSongWithInvidious() {
+    if (pathname.startsWith("/track/")) {
+        $(document).ready(function() {
+            title = $("meta[property=og\\:title]")
+            if (title.length && $("meta[property=og\\:type][content=music\\.song]").length) {
+                console.log("Opening song in Invidious...");
+                title = title.attr("content");
+                artist = $("meta[property=og\\:description]").attr("content").replace(/ ·.*/, "");
+                search_term = `${title} by ${artist}`;
+                search_term = encodeURI(search_term.replaceAll(" ", "+"));
+                window.location.replace(`https://yewtu.be/search/?q=${search_term}&from-spotify=1`);
+            }
+        });
+    }
+}
+
+function handleSpotifyRedirect() {
+    if (search.includes("from-spotify=1")) {
+        console.log("Handling Spotify redirect...");
+        $(document).ready(function() {
+            href = $("div.pure-g a[href^=\\/watch\\?v\\=]:first").attr("href");
+            window.location.replace(`https://yewtu.be${href}`);
+        });
+    }
 }
 
 var redirect = redirects[host];

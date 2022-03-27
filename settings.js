@@ -76,7 +76,6 @@ function saveOptions(ev) {
         "enabled": enabled_cb.checked
     };
 
-
     send("set", settings);
 }
 

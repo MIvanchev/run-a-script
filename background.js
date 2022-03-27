@@ -27,7 +27,7 @@ const VALIDATORS = [
     validateFieldPresent("script"),
     validateFieldPresent("enabled"),
     validateFieldTypeAndValue("version", val => typeof val === "string" &&
-        KNOWN_VERS.includes(VER_STR)),
+        KNOWN_VERS.includes(val)),
     validateFieldTypeAndValue("script", val => typeof val === "string"),
     validateFieldTypeAndValue("enabled", val => typeof val === "boolean")
 ]
@@ -164,7 +164,7 @@ async function query() {
         throw new Error("Failed to retrieve persisted data.");
     }
 
-    validateSettings(settings, "Failed to validated persistent settings, " +
+    validateSettings(settings, "Failed to validate persistent settings, " +
         "see the addon inspector.");
     delete settings.version
 
