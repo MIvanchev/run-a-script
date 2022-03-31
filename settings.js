@@ -108,4 +108,4 @@ async function restoreOptions() {
 browser.runtime.onMessage.addListener(notify);
 document.addEventListener("DOMContentLoaded", restoreOptions);
 form.addEventListener("submit", restoreOptions);
-version_lbl.textContent = browser.runtime.getManifest().version;
+version_lbl.textContent = "v" + browser.runtime.getManifest().version;
