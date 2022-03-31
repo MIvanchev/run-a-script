@@ -19,10 +19,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 const MESSAGES = {
     "deactivate.script": "Failed to deactivate current script, settings not " +
         "persisted.",
-    "perstst.settings": "Failed to persist settings, no script currently " +
+    "persist.settings": "Failed to persist settings, no script currently " +
         "active.",
     "activate.script": "Failed to activate new script but settings persisted.",
-    "query.settings": "Failed to retrieve persisted data.",
+    "query.settings": "Failed to retrieve persisted data, see the addon " +
+        "inspector.",
     "validate.settings": "Failed to validate persistent settings, " +
         "see the addon inspector."
 };

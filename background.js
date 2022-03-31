@@ -55,7 +55,7 @@ async function handleGet(initiator) {
     try {
         await send("get-ok", initiator, await query());
     } catch (err) {
-        await send("get-failed", initiator, "query.settings");
+        await send("get-failed", initiator, err.message);
     }
 }
 
@@ -85,7 +85,7 @@ async function handleSet(initiator, settings) {
     try {
         await register(settings);
     } catch (err) {
-        console.log(err);
+        console.log(`Error while registering script: ${err}`);
         await send("set-failed", initiator, "activate.script");
         return;
     }
@@ -147,7 +147,7 @@ async function query() {
     } catch (err) {
         console.log("Failed to retrieve data from persistent storage: " +
             `${err}`);
-        throw err;
+        throw new Error("query.settings");
     }
 
     validateSettings(settings);
