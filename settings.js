@@ -16,15 +16,30 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+const MESSAGES = {
+    "deactivate.script": "Failed to deactivate current script, settings not " +
+        "persisted.",
+    "perstst.settings": "Failed to persist settings, no script currently " +
+        "active.",
+    "activate.script": "Failed to activate new script but settings persisted.",
+    "query.settings": "Failed to retrieve persisted data.",
+    "validate.settings": "Failed to validate persistent settings, " +
+        "see the addon inspector."
+};
+
+var uuid = crypto.randomUUID();
+
 var form = document.querySelector("form")
 var apply_btn = document.getElementById("apply");
 var status_lbl = document.getElementById("status");
 var script_ed = document.getElementById("thescript");
 var enabled_cb = document.getElementById("enabled");
+var version_lbl = document.getElementById("version");
 
-function send(id, data) {
+function send(id, data = null) {
     browser.runtime.sendMessage({
         "id": id,
+        "initiator": uuid,
         "data": data
     });
 }
@@ -32,8 +47,13 @@ function send(id, data) {
 function notify(message) {
     var {
         id,
+        initiator,
         data
     } = message;
+
+    if (initiator != uuid) {
+        return;
+    }
 
     switch (id) {
         case "get-ok":
@@ -44,7 +64,7 @@ function notify(message) {
             form.addEventListener("submit", saveOptions);
             break;
         case "get-failed":
-            status_lbl.textContent = data;
+            status_lbl.textContent = MESSAGES[data];
             apply_btn.textContent = "Retry";
             apply_btn.disabled = false;
             break;
@@ -54,7 +74,7 @@ function notify(message) {
             setComponentsStatus(false, "Settings applied successfully.");
             break;
         case "set-failed":
-            setComponentsStatus(false, data);
+            setComponentsStatus(false, MESSAGES[data]);
             break;
     }
 }
@@ -81,9 +101,10 @@ function saveOptions(ev) {
 
 async function restoreOptions() {
     status_lbl.textContent = "Loading perstited settings..."
-    send("get", null);
+    send("get");
 }
 
 browser.runtime.onMessage.addListener(notify);
 document.addEventListener("DOMContentLoaded", restoreOptions);
 form.addEventListener("submit", restoreOptions);
+version_lbl.textContent = browser.runtime.getManifest().version;

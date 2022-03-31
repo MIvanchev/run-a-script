@@ -16,27 +16,26 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-const VER_MAJOR = 1
-const VER_MINOR = 0
-const VER_PATCH = 1
-const VER_STR = `${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}`
-const KNOWN_VERS = ["1.0.0", VER_STR]
+const VERSION = browser.runtime.getManifest().version
+const ALL_VERSIONS = ["1.0.0", VERSION]
 
 const VALIDATORS = [
     validateFieldPresent("version"),
     validateFieldPresent("script"),
     validateFieldPresent("enabled"),
-    validateFieldTypeAndValue("version", val => typeof val === "string" &&
-        KNOWN_VERS.includes(val)),
-    validateFieldTypeAndValue("script", val => typeof val === "string"),
-    validateFieldTypeAndValue("enabled", val => typeof val === "boolean")
+    validateFieldTypeAndValue("version", "string",
+        val => ALL_VERSIONS.includes(val)),
+    validateFieldTypeAndValue("script", "string"),
+    validateFieldTypeAndValue("enabled", "boolean")
 ]
 
 var registration = null;
+var queue = null;
 
-function send(id, data) {
-    browser.runtime.sendMessage({
+function send(id, initiator, data) {
+    return browser.runtime.sendMessage({
         "id": id,
+        "initiator": initiator,
         "data": data
     });
 }
@@ -44,34 +43,30 @@ function send(id, data) {
 function notify(message) {
     switch (message.id) {
         case "get":
-            handleGet();
+            queue.then(() => handleGet(message.initiator));
             break;
         case "set":
-            handleSet(message.data);
+            queue.then(() => handleSet(message.initiator, message.data));
             break;
     }
 }
 
-async function handleGet() {
+async function handleGet(initiator) {
     try {
-        settings = await query();
-        send("get-ok", settings);
+        await send("get-ok", initiator, await query());
     } catch (err) {
-        send("get-failed", err.message);
+        await send("get-failed", initiator, "query.settings");
     }
 }
 
-async function handleSet(settings) {
+async function handleSet(initiator, settings) {
 
-    reg = await Promise.resolve(registration);
-
-    if (reg) {
+    if (registration) {
         try {
-            await reg.unregister();
+            await registration.unregister();
         } catch (err) {
             console.log(`Error while unregistering script: ${err}`);
-            send("set-failed", "Failed to deactivate current script, " +
-                "settings not persisted.");
+            await send("set-failed", initiator, "deactivate.script");
             return;
         }
 
@@ -79,37 +74,23 @@ async function handleSet(settings) {
     }
 
     try {
-        settings.version = VER_STR
+        settings.version = VERSION
         await browser.storage.local.set(settings)
     } catch (err) {
         console.log(`Error while writing data to storage: ${err}`);
-        send("set-failed", "Failed to persist settings, " +
-            "no script currently active.");
+        await send("set-failed", initiator, "persist.settings");
         return;
     }
 
-    if (settings.enabled) {
-        var options = {
-            "js": [{
-                "file": "jquery-3.6.0.min.js"
-            }, {
-                "code": settings.script
-            }],
-            "matches": ["http://*/*", "https://*/*"],
-            "runAt": "document_start"
-        };
-
-        try {
-            registration = await browser.userScripts.register(options);
-        } catch (err) {
-            console.log(`Error while registering script: ${err}`)
-            send("set-failed", "Failed to activate new script " +
-                "but settings persisted.");
-            return;
-        }
+    try {
+        await register(settings);
+    } catch (err) {
+        console.log(err);
+        await send("set-failed", initiator, "activate.script");
+        return;
     }
 
-    send("set-ok", settings);
+    await send("set-ok", initiator, settings);
 }
 
 function validateFieldPresent(field) {
@@ -121,10 +102,15 @@ function validateFieldPresent(field) {
     ]
 }
 
-function validateFieldTypeAndValue(field, validator) {
+function validateFieldTypeAndValue(field, type, validator = null) {
+    validation_fn = function(obj) {
+        var val = obj[field]
+        return typeof val === type && (validator ? validator(val) : true)
+    }
+
     return [
-        obj => validator(obj[field]),
-        `The field "${field}" has an  invalid type or an an invalid value. ` +
+        validation_fn,
+        `The field "${field}" has an invalid type or an an invalid value. ` +
         "The data was probably tampered with. Please fix the problems before " +
         "you can use the plugin. An easy fix is to just delete everything " +
         "and start anew."
@@ -135,7 +121,7 @@ function validateSettings(settings, ui_msg) {
     VALIDATORS.forEach(([validator, msg]) => {
         if (!validator(settings)) {
             console.log(msg);
-            throw new Error(ui_msg);
+            throw new Error("validate.settings");
         }
     });
 }
@@ -158,52 +144,45 @@ async function query() {
                 settings.version = "1.0.0";
             }
         }
-    } catch (error) {
+    } catch (err) {
         console.log("Failed to retrieve data from persistent storage: " +
-            `${error}`);
-        throw new Error("Failed to retrieve persisted data.");
+            `${err}`);
+        throw err;
     }
 
-    validateSettings(settings, "Failed to validate persistent settings, " +
-        "see the addon inspector.");
+    validateSettings(settings);
     delete settings.version
 
     return settings;
 }
 
-async function register(script) {
-    var options = {
-        "js": [{
-            "file": "jquery-3.6.0.min.js"
-        }, {
-            "code": script
-        }],
-        "matches": ["http://*/*", "https://*/*"],
-        "runAt": "document_start"
-    };
+async function register(settings) {
+    if (settings.enabled) {
+        var options = {
+            "js": [{
+                "file": "jquery-3.6.0.min.js"
+            }, {
+                "code": settings.script
+            }],
+            "matches": ["http://*/*", "https://*/*"],
+            "runAt": "document_start"
+        };
 
-    try {
-        return await browser.userScripts.register(options);
-    } catch (err) {
-        console.log(`Error while registering script: ${err}`)
-        throw new Error("Failed to register script.");
+        try {
+            registration = await browser.userScripts.register(options);
+        } catch (err) {
+            console.log(`Error while registering script: ${err}`)
+            throw err
+        }
     }
 }
 
-
 browser.runtime.onMessage.addListener(notify);
 
-registration = (async function() {
-    var res = null;
-
+queue = (async function() {
     try {
-        settings = await query();
-        if (settings.enabled) {
-            res = await register(settings.script);
-        }
+        await register(await query());
     } catch (err) {
-        /* Ignore GUI error */
+        /* Ignore error. */
     }
-
-    return res;
 })();
