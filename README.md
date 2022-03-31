@@ -15,7 +15,7 @@ The plugin does NOT support:
 * Chrome – the whole idea of this extension is to be secure but that's irrelevant if your browser is a black box
 * saving to and loading from a file – saving would be useful but currently not possible due to a [Firefox bug](https://bugzilla.mozilla.org/show_bug.cgi?id=1292701) 
 
-![The GUI of run-a-script](/screenshot.png)
+![The GUI of run-a-script](https://raw.githubusercontent.com/MIvanchev/run-a-script/master/screenshot.png)
 
 ## Example
 
