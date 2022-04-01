@@ -70,8 +70,6 @@ function notify(message) {
             apply_btn.disabled = false;
             break;
         case "set-ok":
-            script_ed.value = data.script;
-            enabled_cb.checked = data.enabled;
             setComponentsStatus(false, "Settings applied successfully.");
             break;
         case "set-failed":

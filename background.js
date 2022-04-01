@@ -32,7 +32,7 @@ const VALIDATORS = [
 var registration = null;
 var queue = null;
 
-function send(id, initiator, data) {
+function send(id, initiator, data = null) {
     return browser.runtime.sendMessage({
         "id": id,
         "initiator": initiator,
@@ -90,7 +90,7 @@ async function handleSet(initiator, settings) {
         return;
     }
 
-    await send("set-ok", initiator, settings);
+    await send("set-ok", initiator);
 }
 
 function validateFieldPresent(field) {
