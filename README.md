@@ -35,6 +35,7 @@ var {
 } = new URL(url);
 
 var redirects = {
+    "www.google.com": "www.startpage.com",
     "www.youtube.com": "yewtu.be",
     "www.reddit.com": "old.reddit.com",
     "imgur.com": redirectToImgurMedia,
