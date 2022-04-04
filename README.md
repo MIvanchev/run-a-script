@@ -26,6 +26,24 @@ Here's a simple script that does useful redirects:
 ```
 console.log("The execution of the custom code is beginning.");
 
+// The following redirection schemes are supported.
+//
+// 1. Unconditional redirect
+// 2. Redirect based on a simple URL condition
+// 3. Complex redirect based on the content of the page
+//
+
+var redirects = {
+    "www.google.com": "www.startpage.com",
+    "www.youtube.com": "yewtu.be",
+    "www.reddit.com": ["old.reddit.com", (url) => !url.pathname.startsWith("/gallery/")],
+    "imgur.com": redirectToImgurMedia,
+    "gfycat.com": redirectToGfycatMedia,
+    "twitter.com": "nitter.net",
+    "open.spotify.com": openSongWithInvidious,
+    "yewtu.be": handleSpotifyRedirect
+}
+
 var url = document.URL;
 var {
     host,
@@ -33,17 +51,6 @@ var {
     pathname,
     search
 } = new URL(url);
-
-var redirects = {
-    "www.google.com": "www.startpage.com",
-    "www.youtube.com": "yewtu.be",
-    "www.reddit.com": "old.reddit.com",
-    "imgur.com": redirectToImgurMedia,
-    "gfycat.com": redirectToGfycatMedia,
-    "twitter.com": "nitter.net",
-    "open.spotify.com": openSongWithInvidious,
-    "yewtu.be": handleSpotifyRedirect
-}
 
 function redirectToImgurMedia() {
     console.log("Attempting to redirect to media...");
@@ -97,7 +104,15 @@ function handleSpotifyRedirect() {
 var redirect = redirects[host];
 
 if (redirect) {
-    if (typeof redirect === "string") {
+    if (typeof redirect === "object") {
+        if (redirect[1](new URL(document.URL))) {
+            redirect = redirect[0];
+            window.location.replace(url.replace(
+                `${protocol}//${host}`,
+                `${protocol}//${redirect}`
+            ));
+        }
+    } else if (typeof redirect === "string") {
         window.location.replace(url.replace(
             `${protocol}//${host}`,
             `${protocol}//${redirect}`
