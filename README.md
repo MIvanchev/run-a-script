@@ -39,6 +39,7 @@ var redirects = {
     "www.youtube.com": "yewtu.be",
     "www.reddit.com": "old.reddit.com",
     "imgur.com": redirectToImgurMedia,
+    "gfycat.com": redirectToGfycatMedia,
     "twitter.com": "nitter.net",
     "open.spotify.com": openSongWithInvidious,
     "yewtu.be": handleSpotifyRedirect
@@ -50,6 +51,18 @@ function redirectToImgurMedia() {
         var meta = $("meta[name='twitter:image']").first();
         if (meta.length > 0) {
             window.location.replace(meta.attr("content"));
+        } else {
+            console.log("Couldn't find the media link.");
+        }
+    });
+}
+
+function redirectToGfycatMedia() {
+    console.log("Attempting to redirect to media...");
+    $(document).ready(function() {
+        var src = $("source[src^=https\\:\\/\\/giant\\.gfycat\\.com]");
+        if (src.length > 0) {
+            window.location.replace(src.attr("src"));
         } else {
             console.log("Couldn't find the media link.");
         }
