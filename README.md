@@ -39,6 +39,7 @@ var redirects = {
     "www.reddit.com": ["old.reddit.com", (url) => !url.pathname.startsWith("/gallery/")],
     "imgur.com": redirectToImgurMedia,
     "gfycat.com": redirectToGfycatMedia,
+    "giphy.com": redirectToGiphyMedia,
     "twitter.com": "nitter.net",
     "open.spotify.com": openSongWithInvidious,
     "yewtu.be": handleSpotifyRedirect
@@ -53,27 +54,39 @@ var {
 } = new URL(url);
 
 function redirectToImgurMedia() {
-    console.log("Attempting to redirect to media...");
-    $(document).ready(function() {
-        var meta = $("meta[name='twitter:image']").first();
-        if (meta.length > 0) {
-            window.location.replace(meta.attr("content"));
-        } else {
-            console.log("Couldn't find the media link.");
-        }
-    });
+    if (pathname !== "/") {
+        console.log("Attempting to redirect to media...");
+        $(document).ready(function() {
+            var meta = $("meta[name='twitter:image']").first();
+            if (meta.length > 0) {
+                window.location.replace(meta.attr("content"));
+            }
+        });
+    }
 }
 
 function redirectToGfycatMedia() {
-    console.log("Attempting to redirect to media...");
-    $(document).ready(function() {
-        var src = $("source[src^=https\\:\\/\\/giant\\.gfycat\\.com]");
-        if (src.length > 0) {
-            window.location.replace(src.attr("src"));
-        } else {
-            console.log("Couldn't find the media link.");
-        }
-    });
+    if (pathname !== "/") {
+        console.log("Attempting to redirect to media...");
+        $(document).ready(function() {
+            var src = $("source[src^=https\\:\\/\\/giant\\.gfycat\\.com]");
+            if (src.length > 0) {
+                window.location.replace(src.attr("src"));
+            }
+        });
+    }
+}
+
+function redirectToGiphyMedia() {
+    if (pathname.startsWith("/gifs/")) {
+        console.log("Attempting to redirect to media...");
+        $(document).ready(function() {
+            var src = $("meta[property=og\\:url]");
+            if (src.length > 0) {
+                window.location.replace(src.attr("content"));
+            }
+        });
+    }
 }
 
 function openSongWithInvidious() {
