@@ -48,6 +48,7 @@ var redirects = {
     "media3.giphy.com": redirectToGiphyMedia,
     "media4.giphy.com": redirectToGiphyMedia,
     "tenor.com": redirectToTenorMedia,
+    "www.tiktok.com": redirectToTikTokMedia,
     "twitter.com": "nitter.net",
     "open.spotify.com": openSpotifySongWithInvidious,
     "yewtu.be": handleSpotifyRedirect
@@ -124,6 +125,22 @@ function redirectToGiphyMedia() {
 function redirectToTenorMedia() {
     if (pathname.startsWith("/view/"))
         redirectFromMetaTagContent("twitter:image");
+}
+
+function redirectToTikTokMedia() {
+    if (pathname.includes("/video/")) {
+        window.stop();
+        $.get(url, function(data) {
+            var regex = /"playAddr":"(https:\\u002F\\u002Fv[0-9]+-webapp\.tiktok\.com.+?)\?/;
+            var match = data.match(regex);
+            if (match) {
+                vidUrl = match[1];
+                vidUrl = vidUrl.replaceAll("\\u002F", "/");
+                vidUrl = vidUrl.replaceAll("\\u0026", "&");
+                goToUrl(vidUrl);
+            }
+        });
+    }
 }
 
 function openSpotifySongWithInvidious() {
