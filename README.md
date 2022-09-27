@@ -21,7 +21,7 @@ The plugin does NOT support:
 
 ## Example
 
-Here's a simple script that does useful redirects:
+Here's a sample script that does useful redirects:
 
 ```
 console.log("The execution of the custom code is beginning.");
@@ -110,12 +110,12 @@ function redirectToGiphyMedia() {
     if (pathname.startsWith("/gifs/") ||
         pathname.startsWith("/clips/") && !GIPHY_REDIRECT_ONLY_GIFS) {
 
-        mediaId = pathname.match(/-([a-zA-Z0-9]+)$/);
+        var mediaId = pathname.match(/-([a-zA-Z0-9]+)$/);
         if (mediaId)
             window.location.replace(`https://i.giphy.com/media/${mediaId[1]}/giphy.gif`);
     } else if (pathname.startsWith("/media/")) {
         if (!search.includes('&ct=v') || !GIPHY_REDIRECT_ONLY_GIFS) {
-            mediaId = pathname.match(/^\/media\/([a-zA-Z0-9]+)\//);
+            var mediaId = pathname.match(/^\/media\/([a-zA-Z0-9]+)\//);
             if (mediaId)
                 goToUrl(`https://i.giphy.com/media/${mediaId[1]}/giphy.gif`);
         }
@@ -134,7 +134,7 @@ function redirectToTikTokMedia() {
             var regex = /"playAddr":"(https:\\u002F\\u002Fv[0-9]+-webapp\.tiktok\.com.+?)\?/;
             var match = data.match(regex);
             if (match) {
-                vidUrl = match[1];
+                var vidUrl = match[1];
                 vidUrl = vidUrl.replaceAll("\\u002F", "/");
                 vidUrl = vidUrl.replaceAll("\\u0026", "&");
                 goToUrl(vidUrl);
@@ -149,10 +149,10 @@ function openSpotifySongWithInvidious() {
             var tags = getMetaTags(data);
             var searchTerm = null;
             if (tags.get("og:type") == "music.song") {
-                title = tags.get("og:title", "");
-                artist = tags.get("og:description", "").replace(/ ·.*/, "");
+                var title = tags.get("og:title", "");
+                var artist = tags.get("og:description", "").replace(/ ·.*/, "");
                 if (title != "" && artist != "") {
-                    searchTerm = encodeURIComponent(`${title} by ${artist}`);
+                    var searchTerm = encodeURIComponent(`${title} by ${artist}`);
                     goToUrl(`https://yewtu.be/search/?q=${searchTerm}&from-spotify=1`);
                 }
             }
@@ -165,7 +165,7 @@ function handleSpotifyRedirect() {
         window.stop();
         console.log("Handling Spotify redirect...");
         $.get(url, function(data) {
-            match = data.match(/\s(?:href)="(\/watch\?v=.+?)"/);
+            var match = data.match(/\s(?:href)="(\/watch\?v=.+?)"/);
             if (match)
                 goToUrl(`https://yewtu.be${match[1]}`);
         });
@@ -180,8 +180,8 @@ function getMetaTags(data) {
         var substr = data.slice(end_pos);
         var match = substr.match(/\s(?:name|property)="(.*?)"/);
         if (match) {
-            name = match[1];
-            match = substr.match(/\s(?:content)="(.*?)"/);
+            var name = match[1];
+            var match = substr.match(/\s(?:content)="(.*?)"/);
             if (match)
                 result.set(name, match[1]);
         }
@@ -213,7 +213,7 @@ var redirect = redirects[host];
 if (redirect) {
     if (typeof redirect === "object") {
         if (redirect[1](new URL(document.URL))) {
-            redirect = redirect[0];
+            var redirect = redirect[0];
             window.location.replace(url.replace(
                 `${protocol}//${host}`,
                 `${protocol}//${redirect}`
