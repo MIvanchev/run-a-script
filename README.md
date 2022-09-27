@@ -26,6 +26,9 @@ Here's a simple script that does useful redirects:
 ```
 console.log("The execution of the custom code is beginning.");
 
+const GIPHY_REDIRECT_ONLY_GIFS = false;
+const GFYCAT_PREFER_GIFS = false;
+
 // The following redirection schemes are supported.
 //
 // 1. Unconditional redirect
@@ -34,14 +37,19 @@ console.log("The execution of the custom code is beginning.");
 //
 
 var redirects = {
-    "www.google.com": "www.startpage.com",
+    "www.google.com": ["www.startpage.com", (url) => !url.pathname.startsWith("/maps")],
     "www.youtube.com": "yewtu.be",
     "www.reddit.com": ["old.reddit.com", (url) => !url.pathname.startsWith("/gallery/")],
     "imgur.com": redirectToImgurMedia,
     "gfycat.com": redirectToGfycatMedia,
     "giphy.com": redirectToGiphyMedia,
+    "media1.giphy.com": redirectToGiphyMedia,
+    "media2.giphy.com": redirectToGiphyMedia,
+    "media3.giphy.com": redirectToGiphyMedia,
+    "media4.giphy.com": redirectToGiphyMedia,
+    "tenor.com": redirectToTenorMedia,
     "twitter.com": "nitter.net",
-    "open.spotify.com": openSongWithInvidious,
+    "open.spotify.com": openSpotifySongWithInvidious,
     "yewtu.be": handleSpotifyRedirect
 }
 
@@ -54,51 +62,82 @@ var {
 } = new URL(url);
 
 function redirectToImgurMedia() {
-    if (pathname !== "/") {
-        console.log("Attempting to redirect to media...");
-        $(document).ready(function() {
-            var meta = $("meta[name='twitter:image']").first();
-            if (meta.length > 0) {
-                window.location.replace(meta.attr("content"));
-            }
-        });
-    }
+    if (pathname !== "/")
+        redirectFromMetaTagContent("twitter:image", "og:video");
 }
 
 function redirectToGfycatMedia() {
     if (pathname !== "/") {
-        console.log("Attempting to redirect to media...");
-        $(document).ready(function() {
-            var src = $("source[src^=https\\:\\/\\/giant\\.gfycat\\.com]");
-            if (src.length > 0) {
-                window.location.replace(src.attr("src"));
+        $.get(url, function(data) {
+            var vidUrl = null;
+            var imgUrl = null;
+
+            var regexList = [
+                /<source[^>]*?\s+src="(https:\/\/giant\.gfycat\.com.+?)"/,
+                /<source[^>]*?\s+src="(https:\/\/thums\.gfycat\.com.+?)"/,
+                /<source[^>]*?\s+src="(https:\/\/.+?\.gfycat\.com.+?)"/
+            ];
+            for (regex of regexList) {
+                var match = data.match(regex);
+                if (match) {
+                    vidUrl = match[1];
+                    break;
+                }
             }
+            var match = data.match(/<img[^>]+?actual-gif-image/);
+            if (match) {
+                match = data.slice(match.index).match(/src="(.+?)"/);
+                if (match)
+                    imgUrl = match[1];
+            }
+
+            var mediaUrl = null;
+            if (vidUrl && imgUrl)
+                mediaUrl = GFYCAT_PREFER_GIFS ? imgUrl : vidUrl;
+            else if (vidUrl)
+                mediaUrl = vidUrl;
+            else if (imgUrl)
+                mediaUrl = imgUrl;
+
+            if (mediaUrl)
+                goToUrl(mediaUrl);
         });
     }
 }
 
 function redirectToGiphyMedia() {
-    if (pathname.startsWith("/gifs/")) {
-        console.log("Attempting to redirect to media...");
-        $(document).ready(function() {
-            var src = $("meta[property=og\\:url]");
-            if (src.length > 0) {
-                window.location.replace(src.attr("content"));
-            }
-        });
+    if (pathname.startsWith("/gifs/") ||
+        pathname.startsWith("/clips/") && !GIPHY_REDIRECT_ONLY_GIFS) {
+
+        mediaId = pathname.match(/-([a-zA-Z0-9]+)$/);
+        if (mediaId)
+            window.location.replace(`https://i.giphy.com/media/${mediaId[1]}/giphy.gif`);
+    } else if (pathname.startsWith("/media/")) {
+        if (!search.includes('&ct=v') || !GIPHY_REDIRECT_ONLY_GIFS) {
+            mediaId = pathname.match(/^\/media\/([a-zA-Z0-9]+)\//);
+            if (mediaId)
+                goToUrl(`https://i.giphy.com/media/${mediaId[1]}/giphy.gif`);
+        }
     }
 }
 
-function openSongWithInvidious() {
+function redirectToTenorMedia() {
+    if (pathname.startsWith("/view/"))
+        redirectFromMetaTagContent("twitter:image");
+}
+
+function openSpotifySongWithInvidious() {
     if (pathname.startsWith("/track/")) {
-        $(document).ready(function() {
-            if ($("meta[property=og\\:type][content=music\\.song]").length) {
-                console.log("Opening song in Invidious...");
-                title = $("meta[property=og\\:title]").attr("content");
-                artist = $("meta[property=og\\:description]").attr("content").replace(/ ·.*/, "");
-                search_term = `${title} by ${artist}`;
-                search_term = encodeURI(search_term.replaceAll(" ", "+"));
-                window.location.replace(`https://yewtu.be/search/?q=${search_term}&from-spotify=1`);
+        $.get(url, function(data) {
+            var tags = getMetaTags(data);
+            var searchTerm = null;
+            if (tags.get("og:type") == "music.song") {
+                title = tags.get("og:title", "");
+                artist = tags.get("og:description", "").replace(/ ·.*/, "");
+                if (title != "" && artist != "") {
+                    searchTerm = encodeURIComponent(`${title} by ${artist}`);
+                    goToUrl(`https://yewtu.be/search/?q=${searchTerm}&from-spotify=1`);
+                }
             }
         });
     }
@@ -106,12 +145,50 @@ function openSongWithInvidious() {
 
 function handleSpotifyRedirect() {
     if (search.includes("from-spotify=1")) {
+        window.stop();
         console.log("Handling Spotify redirect...");
-        $(document).ready(function() {
-            href = $("div.pure-g a[href^=\\/watch\\?v\\=]:first").attr("href");
-            window.location.replace(`https://yewtu.be${href}`);
+        $.get(url, function(data) {
+            match = data.match(/\s(?:href)="(\/watch\?v=.+?)"/);
+            if (match)
+                goToUrl(`https://yewtu.be${match[1]}`);
         });
     }
+}
+
+function getMetaTags(data) {
+    var result = new Map();
+    var meta_regex = /<meta(?=\s+)/g;
+    while ((match = meta_regex.exec(data)) !== null) {
+        var end_pos = meta_regex.lastIndex;
+        var substr = data.slice(end_pos);
+        var match = substr.match(/\s(?:name|property)="(.*?)"/);
+        if (match) {
+            name = match[1];
+            match = substr.match(/\s(?:content)="(.*?)"/);
+            if (match)
+                result.set(name, match[1]);
+        }
+    }
+
+    return result;
+}
+
+function redirectFromMetaTagContent() {
+    var args = arguments
+    $.get(url, function(data) {
+        var tags = getMetaTags(data);
+        for (arg of args) {
+            if (tags.has(arg)) {
+                goToUrl(tags.get(arg));
+                break;
+            }
+        }
+    });
+}
+
+function goToUrl(url) {
+    window.stop();
+    window.location.replace(url);
 }
 
 var redirect = redirects[host];
