@@ -40,6 +40,7 @@ var redirects = {
     "www.google.com": ["www.startpage.com", (url) => !url.pathname.startsWith("/maps")],
     "www.youtube.com": "yewtu.be",
     "www.reddit.com": ["old.reddit.com", (url) => !url.pathname.startsWith("/gallery/")],
+    "twitter.com": "nitter.net",
     "imgur.com": redirectToImgurMedia,
     "gfycat.com": redirectToGfycatMedia,
     "giphy.com": redirectToGiphyMedia,
@@ -49,7 +50,6 @@ var redirects = {
     "media4.giphy.com": redirectToGiphyMedia,
     "tenor.com": redirectToTenorMedia,
     "www.tiktok.com": redirectToTikTokMedia,
-    "twitter.com": "nitter.net",
     "open.spotify.com": openSpotifySongWithInvidious,
     "yewtu.be": handleSpotifyRedirect
 }
@@ -112,7 +112,7 @@ function redirectToGiphyMedia() {
 
         var mediaId = pathname.match(/-([a-zA-Z0-9]+)$/);
         if (mediaId)
-            window.location.replace(`https://i.giphy.com/media/${mediaId[1]}/giphy.gif`);
+            goToUrl(`https://i.giphy.com/media/${mediaId[1]}/giphy.gif`);
     } else if (pathname.startsWith("/media/")) {
         if (!search.includes('&ct=v') || !GIPHY_REDIRECT_ONLY_GIFS) {
             var mediaId = pathname.match(/^\/media\/([a-zA-Z0-9]+)\//);
@@ -123,8 +123,10 @@ function redirectToGiphyMedia() {
 }
 
 function redirectToTenorMedia() {
-    if (pathname.startsWith("/view/"))
+    if (pathname.startsWith("/view/")) {
+        window.stop();
         redirectFromMetaTagContent("twitter:image");
+    }
 }
 
 function redirectToTikTokMedia() {
@@ -174,10 +176,10 @@ function handleSpotifyRedirect() {
 
 function getMetaTags(data) {
     var result = new Map();
-    var meta_regex = /<meta(?=\s+)/g;
-    while ((match = meta_regex.exec(data)) !== null) {
-        var end_pos = meta_regex.lastIndex;
-        var substr = data.slice(end_pos);
+    var metaRegex = /<meta(?=\s+)/g;
+    while ((match = metaRegex.exec(data)) !== null) {
+        var endpos = metaRegex.lastIndex;
+        var substr = data.slice(endpos);
         var match = substr.match(/\s(?:name|property)="(.*?)"/);
         if (match) {
             var name = match[1];
@@ -214,16 +216,10 @@ if (redirect) {
     if (typeof redirect === "object") {
         if (redirect[1](new URL(document.URL))) {
             var redirect = redirect[0];
-            window.location.replace(url.replace(
-                `${protocol}//${host}`,
-                `${protocol}//${redirect}`
-            ));
+            goToUrl(url.replace(`${protocol}//${host}`, `${protocol}//${redirect}`));
         }
     } else if (typeof redirect === "string") {
-        window.location.replace(url.replace(
-            `${protocol}//${host}`,
-            `${protocol}//${redirect}`
-        ));
+        goToUrl(url.replace(`${protocol}//${host}`, `${protocol}//${redirect}`));
     } else
         redirect();
 }
