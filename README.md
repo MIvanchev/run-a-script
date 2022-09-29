@@ -75,7 +75,7 @@ function redirectToGfycatMedia() {
 
             var regexList = [
                 /<source[^>]*?\s+src="(https:\/\/giant\.gfycat\.com.+?)"/,
-                /<source[^>]*?\s+src="(https:\/\/thums\.gfycat\.com.+?)"/,
+                /<source[^>]*?\s+src="(https:\/\/thumbs\.gfycat\.com.+?)"/,
                 /<source[^>]*?\s+src="(https:\/\/.+?\.gfycat\.com.+?)"/
             ];
             for (regex of regexList) {
