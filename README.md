@@ -21,10 +21,13 @@ The plugin does NOT support:
 
 ## Example
 
-Here's a simple script that does useful redirects:
+Here's a sample script that does useful redirects:
 
 ```
 console.log("The execution of the custom code is beginning.");
+
+const GIPHY_REDIRECT_ONLY_GIFS = true;
+const GFYCAT_PREFER_GIFS = false;
 
 // The following redirection schemes are supported.
 //
@@ -34,14 +37,20 @@ console.log("The execution of the custom code is beginning.");
 //
 
 var redirects = {
-    "www.google.com": "www.startpage.com",
+    "www.google.com": ["www.startpage.com", (url) => !url.pathname.startsWith("/maps")],
     "www.youtube.com": "yewtu.be",
     "www.reddit.com": ["old.reddit.com", (url) => !url.pathname.startsWith("/gallery/")],
+    "twitter.com": "nitter.net",
     "imgur.com": redirectToImgurMedia,
     "gfycat.com": redirectToGfycatMedia,
     "giphy.com": redirectToGiphyMedia,
-    "twitter.com": "nitter.net",
-    "open.spotify.com": openSongWithInvidious,
+    "media1.giphy.com": redirectToGiphyMedia,
+    "media2.giphy.com": redirectToGiphyMedia,
+    "media3.giphy.com": redirectToGiphyMedia,
+    "media4.giphy.com": redirectToGiphyMedia,
+    "tenor.com": redirectToTenorMedia,
+    "www.tiktok.com": redirectToTikTokMedia,
+    "open.spotify.com": openSpotifySongWithInvidious,
     "yewtu.be": handleSpotifyRedirect
 }
 
@@ -54,51 +63,100 @@ var {
 } = new URL(url);
 
 function redirectToImgurMedia() {
-    if (pathname !== "/") {
-        console.log("Attempting to redirect to media...");
-        $(document).ready(function() {
-            var meta = $("meta[name='twitter:image']").first();
-            if (meta.length > 0) {
-                window.location.replace(meta.attr("content"));
-            }
-        });
-    }
+    if (pathname !== "/")
+        redirectFromMetaTagContent("twitter:image", "og:video");
 }
 
 function redirectToGfycatMedia() {
     if (pathname !== "/") {
-        console.log("Attempting to redirect to media...");
-        $(document).ready(function() {
-            var src = $("source[src^=https\\:\\/\\/giant\\.gfycat\\.com]");
-            if (src.length > 0) {
-                window.location.replace(src.attr("src"));
+        $.get(url, function(data) {
+            var vidUrl = null;
+            var imgUrl = null;
+
+            var regexList = [
+                /<source[^>]*?\s+src="(https:\/\/giant\.gfycat\.com.+?)"/,
+                /<source[^>]*?\s+src="(https:\/\/thumbs\.gfycat\.com.+?)"/,
+                /<source[^>]*?\s+src="(https:\/\/.+?\.gfycat\.com.+?)"/
+            ];
+            for (regex of regexList) {
+                var match = data.match(regex);
+                if (match) {
+                    vidUrl = match[1];
+                    break;
+                }
             }
+            var match = data.match(/<img[^>]+?actual-gif-image/);
+            if (match) {
+                match = data.slice(match.index).match(/src="(.+?)"/);
+                if (match)
+                    imgUrl = match[1];
+            }
+
+            var mediaUrl = null;
+            if (vidUrl && imgUrl)
+                mediaUrl = GFYCAT_PREFER_GIFS ? imgUrl : vidUrl;
+            else if (vidUrl)
+                mediaUrl = vidUrl;
+            else if (imgUrl)
+                mediaUrl = imgUrl;
+
+            if (mediaUrl)
+                goToUrl(mediaUrl);
         });
     }
 }
 
 function redirectToGiphyMedia() {
-    if (pathname.startsWith("/gifs/")) {
-        console.log("Attempting to redirect to media...");
-        $(document).ready(function() {
-            var src = $("meta[property=og\\:url]");
-            if (src.length > 0) {
-                window.location.replace(src.attr("content"));
+    if (pathname.startsWith("/gifs/") ||
+        pathname.startsWith("/clips/") && !GIPHY_REDIRECT_ONLY_GIFS) {
+
+        var mediaId = pathname.match(/-([a-zA-Z0-9]+)$/);
+        if (mediaId)
+            goToUrl(`https://i.giphy.com/media/${mediaId[1]}/giphy.gif`);
+    } else if (pathname.startsWith("/media/")) {
+        if (!search.includes('&ct=v') || !GIPHY_REDIRECT_ONLY_GIFS) {
+            var mediaId = pathname.match(/^\/media\/([a-zA-Z0-9]+)\//);
+            if (mediaId)
+                goToUrl(`https://i.giphy.com/media/${mediaId[1]}/giphy.gif`);
+        }
+    }
+}
+
+function redirectToTenorMedia() {
+    if (pathname.startsWith("/view/")) {
+        window.stop();
+        redirectFromMetaTagContent("twitter:image");
+    }
+}
+
+function redirectToTikTokMedia() {
+    if (pathname.includes("/video/")) {
+        window.stop();
+        $.get(url, function(data) {
+            var regex = /"playAddr":"(https:\\u002F\\u002Fv[0-9]+-webapp\.tiktok\.com.+?)\?/;
+            var match = data.match(regex);
+            if (match) {
+                var vidUrl = match[1];
+                vidUrl = vidUrl.replaceAll("\\u002F", "/");
+                vidUrl = vidUrl.replaceAll("\\u0026", "&");
+                goToUrl(vidUrl);
             }
         });
     }
 }
 
-function openSongWithInvidious() {
+function openSpotifySongWithInvidious() {
     if (pathname.startsWith("/track/")) {
-        $(document).ready(function() {
-            if ($("meta[property=og\\:type][content=music\\.song]").length) {
-                console.log("Opening song in Invidious...");
-                title = $("meta[property=og\\:title]").attr("content");
-                artist = $("meta[property=og\\:description]").attr("content").replace(/ ·.*/, "");
-                search_term = `${title} by ${artist}`;
-                search_term = encodeURI(search_term.replaceAll(" ", "+"));
-                window.location.replace(`https://yewtu.be/search/?q=${search_term}&from-spotify=1`);
+        $.get(url, function(data) {
+            var tags = getMetaTags(data);
+            var searchTerm = null;
+            if (tags.get("og:type") == "music.song") {
+                var title = tags.get("og:title", "");
+                var artist = tags.get("og:description", "").replace(/ ·.*/, "");
+                if (title != "" && artist != "") {
+                    var searchTerm = encodeURIComponent(`${title} by ${artist}`);
+                    goToUrl(`https://yewtu.be/search/?q=${searchTerm}&from-spotify=1`);
+                }
             }
         });
     }
@@ -106,12 +164,50 @@ function openSongWithInvidious() {
 
 function handleSpotifyRedirect() {
     if (search.includes("from-spotify=1")) {
+        window.stop();
         console.log("Handling Spotify redirect...");
-        $(document).ready(function() {
-            href = $("div.pure-g a[href^=\\/watch\\?v\\=]:first").attr("href");
-            window.location.replace(`https://yewtu.be${href}`);
+        $.get(url, function(data) {
+            var match = data.match(/\s(?:href)="(\/watch\?v=.+?)"/);
+            if (match)
+                goToUrl(`https://yewtu.be${match[1]}`);
         });
     }
+}
+
+function getMetaTags(data) {
+    var result = new Map();
+    var metaRegex = /<meta(?=\s+)/g;
+    while ((match = metaRegex.exec(data)) !== null) {
+        var endpos = metaRegex.lastIndex;
+        var substr = data.slice(endpos);
+        var match = substr.match(/\s(?:name|property)="(.*?)"/);
+        if (match) {
+            var name = match[1];
+            var match = substr.match(/\s(?:content)="(.*?)"/);
+            if (match)
+                result.set(name, match[1]);
+        }
+    }
+
+    return result;
+}
+
+function redirectFromMetaTagContent() {
+    var args = arguments
+    $.get(url, function(data) {
+        var tags = getMetaTags(data);
+        for (arg of args) {
+            if (tags.has(arg)) {
+                goToUrl(tags.get(arg));
+                break;
+            }
+        }
+    });
+}
+
+function goToUrl(url) {
+    window.stop();
+    window.location.replace(url);
 }
 
 var redirect = redirects[host];
@@ -119,17 +215,11 @@ var redirect = redirects[host];
 if (redirect) {
     if (typeof redirect === "object") {
         if (redirect[1](new URL(document.URL))) {
-            redirect = redirect[0];
-            window.location.replace(url.replace(
-                `${protocol}//${host}`,
-                `${protocol}//${redirect}`
-            ));
+            var redirect = redirect[0];
+            goToUrl(url.replace(`${protocol}//${host}`, `${protocol}//${redirect}`));
         }
     } else if (typeof redirect === "string") {
-        window.location.replace(url.replace(
-            `${protocol}//${host}`,
-            `${protocol}//${redirect}`
-        ));
+        goToUrl(url.replace(`${protocol}//${host}`, `${protocol}//${redirect}`));
     } else
         redirect();
 }
