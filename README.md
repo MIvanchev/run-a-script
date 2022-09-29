@@ -26,7 +26,7 @@ Here's a sample script that does useful redirects:
 ```
 console.log("The execution of the custom code is beginning.");
 
-const GIPHY_REDIRECT_ONLY_GIFS = false;
+const GIPHY_REDIRECT_ONLY_GIFS = true;
 const GFYCAT_PREFER_GIFS = false;
 
 // The following redirection schemes are supported.
