@@ -25,7 +25,7 @@ BEAUTIFIERS = {"js": beautifyJs, "json": beautifyJson, "html": beautifyHtml}
 
 for root, dirs, files in os.walk("."):
     for name in files:
-        if name != "jquery-3.6.0.min.js":
+        if re.fullmatch(r"jquery-[0-9]+\.[0-9]+\.[0-9]+\.min.js", name):
             ext = os.path.splitext(name)[1][1:]
             beautifier = BEAUTIFIERS.get(ext)
             if beautifier:

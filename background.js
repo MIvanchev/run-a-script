@@ -17,7 +17,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 const VERSION = browser.runtime.getManifest().version
-const ALL_VERSIONS = ["1.0.0", VERSION]
+const ALL_VERSIONS = ["1.0.0", "1.0.1", VERSION]
 
 const VALIDATORS = [
     validateFieldPresent("version"),
@@ -160,7 +160,7 @@ async function register(settings) {
     if (settings.enabled) {
         var options = {
             "js": [{
-                "file": "jquery-3.6.0.min.js"
+                "file": "jquery-3.7.1.min.js"
             }, {
                 "code": settings.script
             }],
